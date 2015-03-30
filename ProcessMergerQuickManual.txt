@@ -1,0 +1,67 @@
+------------------------
+ProcessMerge v0.6
+------------------------
+
+Requirements: Java 6 or above
+
+What it does:
+
+	ProcessMerge is a tool for merging process models represented in the EPC Markup Language (EPML)
+
+How:
+	ProcessMerge implements the process model merging techniques described in the report "Merging Business Process Models (Extended Version)" by M. La Rosa, M. Dumas, R. Uba and R. Dijkman (see: http://eprints.qut.edu.au/29120/).
+
+USAGE 1:
+java -jar ProcessMerger [-mt=mt_value] [-ct=ct_value] [-ent=[true|false]] [-digest=frequency] [-alg=[g|h]] [-name=merged_name] <nameOfFile1.epml> <nameOfFile2.epml> ... <nameOfFilen.epml>
+
+	Input: 	Two or more (configurable) EPC process models encoded in the EPML notation.
+	Output: A (configurable) EPC process model in EPML.
+
+Parameters:
+	-mt: threshold for non connector nodes, if similarity for nodes is >= threshold, then two nodes are merged, default value=0.5
+	-ct: threshold for connector nodes, if similarity for connectors is >= threshold, then 2 connectors are merged, default value=0.75
+	-ent: defines if mapped pairs that generate entanglement should be removed or not, if true, entanglement pairs will be removed, default value=true
+	-digest: computes the digest of the merged model. Needs parameter frequency of type integer. All the nodes that occur at least digest_value times will be added to digest.
+	-alg: algorithm that is used to compute the similairity between each pair of models. Value: h: hungarian, g: greedy, default is greedy.
+	-name: name of the merged model, by default the concatenation of merged model names is used.
+
+All parameters are optional. 
+
+USAGE 2:
+java -jar ProcessMerger -digest=frequency <nameOfMergedModel.epml> 
+
+	Input: 	A configurable EPC process model encoded in the EPML notation.
+	Output: An EPC process model in EPML represeting the digest of the input model.
+
+Parameters:
+	-digest: computes the digest of the merged model. Needs parameter frequency of type integer. All the nodes that occur at least digest_value times will be added to digest.
+
+
+How to visualize the output:
+	EPML models can be visualized using one of the following tools:
+        Apromore, available at: www.apromore.qut.edu.au
+
+	The C-iEPC Designer available at:
+        http://www.processconfiguration.com/download.html
+        
+	The ProM toolkit available at: http://www.processmining.org
+
+        The output of ProcessMerge is a configurable EPC, meaning that some 
+        of the connectors are marked as "configurable" and contain attributes
+        that allow one to trace the provenance of each branch of the connector.
+
+Assumptions:
+		
+	The input should be formatted according the the EPC Markup Language:
+	http://www.mendling.com/EPML/
+        To check that the input models are correctly formatted, you can open
+        the input models using the ProM toolkit. 
+	Special characters such €, >, < require XML escape methods in EPML. 
+
+
+        Two sample EPML files are provided with the tool distribution.
+
+Release notes:
+
+	0.6: fixed non-determinism issue with similarity search arising when two or more model pairs yield the same matching score
+	0.5: initial release

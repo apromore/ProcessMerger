@@ -1,0 +1,44 @@
+------------------------
+ProcessSimilarity v0.6
+------------------------
+
+Requirements: Java 6 or above
+
+What it does:
+
+	ProcessSimilarity is a tool for computing the similarity of two process models represented in the EPC Markup Language (EPML)
+
+How:
+	ProcessSimilarity implements the process model similarity techniques described in the report "Business Process Model Merging: An Approach to Business Process Consolidation" by M. La Rosa, M. Dumas, R. Uba and R. Dijkman (see: http://eprints.qut.edu.au/38241/).
+
+USAGE:
+java -jar ProcessSimilarity [-mt=mt_value] [-ct=ct_value] [-ent=[true|false]] [-alg=[g|h]] <nameOfFile1.epml> <nameOfFile2.epml>
+
+	Input: 	Two or more (configurable) EPC process models encoded in the EPML notation.
+	Output: A decimal value between 0 and 1 representing the similarity between the two input models, where 0 means that processes are not similar and 1 means that the processes are the same.
+
+Parameters:
+	-mt: threshold for non connector nodes, if similarity for nodes is >= threshold, then two nodes are merged, default value=0.5
+	-ct: threshold for connector nodes, if similarity for connectors is >= threshold, then 2 connectors are merged, default value=0.75
+	-ent: defines if mapped pairs that generate entanglement should be removed or not, if true, entanglement pairs will be removed, default value=true
+	-digest: computes the digest of the merged model. Needs parameter frequency of type integer. All the nodes that occur at least digest_value times will be added to digest.
+	-alg: algorithm that is used to compute the similairity between each pair of models. Value: h: hungarian, g: greedy, default is greedy.
+
+All parameters are optional. 
+
+
+Assumptions:
+		
+	The input should be formatted according the the EPC Markup Language:
+	http://www.mendling.com/EPML/
+        To check that the input models are correctly formatted, you can open
+        the input models using the ProM toolkit. 
+	Special characters  such €, >, < require XML escape methods in EPML. 
+
+
+        Two sample EPML files are provided with the tool distribution.
+
+Release notes:
+
+	0.6: fixed non-determinism issue with similarity search arising when two or more model pairs yield the same matching score
+	0.5: initial release
