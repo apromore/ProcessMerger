@@ -20,8 +20,9 @@
 
 package merge;
 
+import common.IdGeneratorHelper;
 import graph.Graph;
 
 public interface MergeI {
-	public Graph mergeModels (Graph g1, Graph g2);
+	public Graph mergeModels (Graph g1, Graph g2, IdGeneratorHelper idGeneratorHelper);
 }

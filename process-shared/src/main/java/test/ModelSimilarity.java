@@ -20,6 +20,7 @@
 
 package test;
 
+import common.IdGeneratorHelper;
 import graph.Graph;
 
 import java.util.HashSet;
@@ -143,12 +144,15 @@ public class ModelSimilarity {
 
 	private static void testMerge(LinkedList<String> modelnames) {
 
-		Graph g1 = EPCModelParser.readModels(modelnames.get(0), false).get(0);
-		g1.removeEmptyNodes();
+		IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
 
+		Graph g1 = EPCModelParser.readModels(modelnames.get(0), false, idGeneratorHelper).get(0);
+		g1.setIdGenerator(idGeneratorHelper);
+		g1.removeEmptyNodes();
 		g1.reorganizeIDs();
 		
-		Graph g2 = EPCModelParser.readModels(modelnames.get(1), false).get(0);
+		Graph g2 = EPCModelParser.readModels(modelnames.get(1), false, idGeneratorHelper).get(0);
+		g2.setIdGenerator(idGeneratorHelper);
 		g2.removeEmptyNodes();
 		g2.reorganizeIDs();
 		

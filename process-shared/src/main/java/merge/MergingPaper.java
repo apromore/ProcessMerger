@@ -20,6 +20,7 @@
 
 package merge;
 
+import common.IdGeneratorHelper;
 import graph.Edge;
 import graph.Graph;
 import graph.Vertex;
@@ -60,12 +61,13 @@ public class MergingPaper implements MergeI {
 		return similarity;
 	}
 
-	public Graph mergeModels (Graph g1, Graph g2) {
-		return mergeModels (g1, g2, null);
+	public Graph mergeModels (Graph g1, Graph g2, IdGeneratorHelper idGenerator) {
+		MergeModels mergeModels = new MergeModels();
+		return mergeModels.mergeModels(g1, g2, idGenerator, Settings.REMOVE_ENTANGLEMENT, Settings.COMPARISON_METHOD.name(), Settings.MERGE_THRESHOLD, Settings.DEFAULT_THRESHOLD, Settings.MERGE_CONTEXT_THRESHOLD, Settings.eweight, Settings.vweight, Settings.sweight);
 	}
 	
-	public Graph mergeModels (Graph g1, Graph g2, LinkedList<VertexPair> mapping) {
-		
+	public Graph mergeModels (Graph g1, Graph g2, IdGeneratorHelper idGenerator, LinkedList<VertexPair> mapping) {
+
 		Graph merged = new Graph();
 		long startTime = System.currentTimeMillis();
 
@@ -194,7 +196,7 @@ public class MergingPaper implements MergeI {
 				if ((addgw || addgwr) && vp.getLeft().getParents().size() == 1 &&
 						vp.getRight().getParents().size() == 1) {
 					
-					Vertex newGw = new Vertex(GWType.xor, ""+Graph.nextId++);
+					Vertex newGw = new Vertex(GWType.xor, ""+idGenerator.getNextId());
 					newGw.setConfigurable(true);
 					merged.addVertex(newGw);
 					
@@ -240,7 +242,7 @@ public class MergingPaper implements MergeI {
 				if ((addgw || addgwr) && vp.getLeft().getChildren().size() == 1 &&
 						vp.getRight().getChildren().size() == 1) {
 					
-					Vertex newGw = new Vertex(GWType.xor, ""+Graph.nextId++);
+					Vertex newGw = new Vertex(GWType.xor, ""+idGenerator.getNextId());
 					newGw.setConfigurable(true);
 					merged.addVertex(newGw);
 					
@@ -302,7 +304,7 @@ public class MergingPaper implements MergeI {
 			merged.name += l + ",";
 		}
 		merged.name = merged.name.substring(0, merged.name.length() - 1);
-		merged.ID = String.valueOf(Graph.nextId++);
+		merged.ID = String.valueOf(idGenerator.getNextId());
 		
 		return merged;
 	}

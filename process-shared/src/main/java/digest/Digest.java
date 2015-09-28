@@ -20,6 +20,7 @@
 
 package digest;
 
+import common.IdGeneratorHelper;
 import graph.Edge;
 import graph.Graph;
 import graph.Vertex;
@@ -29,10 +30,10 @@ import java.util.LinkedList;
 
 public class Digest {
 	
-	public static Graph digest(Graph merged, int freq) {
+	public static Graph digest(Graph merged, int freq, IdGeneratorHelper idGenerator) {
 		Graph digest = new Graph();
 		digest.name = merged.name + "_digest";
-		digest.ID = String.valueOf(Graph.nextId++);
+		digest.ID = String.valueOf(idGenerator.getNextId());
 		
 		// add all the edges that occur in the merged
 		// model more or equal as the frequency given
@@ -89,7 +90,7 @@ public class Digest {
 				Vertex mergedCh = merged.getVertexMap().get(ch.getID());
 				if (hasPath(mergedP, mergedCh, digest)) {
 					// TODO add new node type .. and the presentation???
-					Vertex placeholder = new Vertex(Vertex.Type.function, "#", ""+Graph.nextId++);
+					Vertex placeholder = new Vertex(Vertex.Type.function, "#", ""+idGenerator.getNextId());
 					digest.addVertex(placeholder);
 					digest.connectVertices(p, placeholder);
 					digest.connectVertices(placeholder, ch);

@@ -29,18 +29,20 @@ import graph.Vertex.Type;
 
 public class NodeSimilarity {
 
-	public static double findNodeSimilarity(Vertex n, Vertex m) {
+	public static double findNodeSimilarity(Vertex n, Vertex m, double labelTreshold) {
 		// functions or events -
-		// compare the labels of these nodes 
+		// compare the labels of these nodes
 		// tokenize, stem and find the similarity score
-		if ((n.getType().equals(Type.function) && m.getType().equals(Type.function)
-		 || n.getType().equals(Type.event) && m.getType().equals(Type.event)) 
-		 && AssingmentProblem.canMap(n, m)) {
-			return LabelEditDistance.edTokensWithStemming(m.getLabel(), 
+		if (((n.getType().equals(Type.function) && m.getType().equals(Type.function))
+				|| (n.getType().equals(Type.event) && m.getType().equals(Type.event))
+				|| (n.getType().equals(Type.state) && m.getType().equals(Type.state))
+				|| (n.getType().equals(Type.node) && m.getType().equals(Type.node)))
+				&& AssingmentProblem.canMap(n, m)) {
+			return LabelEditDistance.edTokensWithStemming(m.getLabel(),
 					n.getLabel(), Settings.STRING_DELIMETER,
 					Settings.getEnglishStemmer(), true);
-			
-		} 
+
+		}
 		// gateways
 		else if (n.getType().equals(Type.gateway) && m.getType().equals(Type.gateway)) {
 			// splits can not be merged with joins
@@ -48,9 +50,7 @@ public class NodeSimilarity {
 					|| Graph.isSplit(m) && Graph.isJoin(n)) {
 				return 0;
 			}
-			double sim =  SemanticSimilarity.getSemanticSimilarity(n, m);
-//			System.out.println(">Similarity : "+sim);
-			return sim;
+			return SemanticSimilarity.getSemanticSimilarity(n, m, labelTreshold);
 		}
 		return 0;
 	}

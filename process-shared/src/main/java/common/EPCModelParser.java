@@ -75,7 +75,8 @@ public class EPCModelParser{
 	            if(mainElementNode.getNodeType() == Node.ELEMENT_NODE){
 	            	mainElement = (Element)mainElementNode;
 	            	
-	            	graph.setNrOfFunctions(addElements("transition", graph, mainElement));
+//	            	graph.setNrOfFunctions(
+					addElements("transition", graph, mainElement);
 //	            	graph.setNrOfEvents(addElements("event", graph, mainElement));
 	            	addPNMLEdges("arc", graph, mainElement);
 	            	addGateways("place", graph, mainElement);
@@ -125,8 +126,8 @@ public class EPCModelParser{
             
             if(mainEPCmodel.getNodeType() == Node.ELEMENT_NODE){
             	mainEPCElement = (Element)mainEPCmodel;
-            	epcGraph.setNrOfFunctions(addElements("function", epcGraph, mainEPCElement));
-            	epcGraph.setNrOfEvents(addElements("event", epcGraph, mainEPCElement));
+            	addElements("function", epcGraph, mainEPCElement);
+            	addElements("event", epcGraph, mainEPCElement);
             	addEdges("arc", epcGraph, mainEPCElement);
             	addGateways("and", epcGraph, mainEPCElement);
             	addGateways("or", epcGraph, mainEPCElement);
@@ -391,11 +392,11 @@ public class EPCModelParser{
     }
     
     
-    public static LinkedList<Graph> readModels(String filename, boolean print){
-    	return readModels(filename, print, false);
+    public static LinkedList<Graph> readModels(String filename, boolean print, IdGeneratorHelper idGeneratorHelper){
+    	return readModels(filename, print, false, idGeneratorHelper);
     }
     
-    public static LinkedList<Graph> readModels(String filename, boolean print, boolean readCoordinates){
+    public static LinkedList<Graph> readModels(String filename, boolean print, boolean readCoordinates, IdGeneratorHelper idGeneratorHelper){
     	
     	LinkedList<Graph> graphs = new LinkedList<Graph>();
     	
@@ -421,6 +422,7 @@ public class EPCModelParser{
             for(int k = 0; k < models.getLength(); k++) {
             	
             	Graph epcGraph = new Graph();
+                epcGraph.setIdGenerator(idGeneratorHelper);
 	            Node mainEPCmodel = models.item(k);
 	            
 	            if(mainEPCmodel.getNodeType() == Node.ELEMENT_NODE){
@@ -432,8 +434,8 @@ public class EPCModelParser{
 	            		output.print(epcGraph.name+"\n");
 	            	}
 	            	
-	            	epcGraph.setNrOfFunctions(addElements("function", epcGraph, readCoordinates, mainEPCElement));
-	            	epcGraph.setNrOfEvents(addElements("event", epcGraph, readCoordinates, mainEPCElement));
+	            	addElements("function", epcGraph, readCoordinates, mainEPCElement);
+	            	addElements("event", epcGraph, readCoordinates, mainEPCElement);
 	            	addEdges("arc", epcGraph, mainEPCElement, readCoordinates);
 	            	addGateways("and", epcGraph, mainEPCElement, readCoordinates);
 	            	addGateways("or", epcGraph, mainEPCElement, readCoordinates);

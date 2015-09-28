@@ -21,6 +21,7 @@
 package test;
 
 import common.EPCModelParser;
+import common.IdGeneratorHelper;
 import common.Settings;
 
 import graph.Graph;
@@ -52,17 +53,21 @@ public class MergeProcessModels {
 
 	public static void testSAWA(String m1, String m2) {
 
-		Graph g1 = EPCModelParser.readModels(m1, false).get(0);
+		IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+
+		Graph g1 = EPCModelParser.readModels(m1, false, idGeneratorHelper).get(0);
+		g1.setIdGenerator(idGeneratorHelper);
 		g1.reorganizeIDs();
 		
-		Graph g2 = EPCModelParser.readModels(m2, false).get(0);
+		Graph g2 = EPCModelParser.readModels(m2, false, idGeneratorHelper).get(0);
+		g2.setIdGenerator(idGeneratorHelper);
 		g2.reorganizeIDs();
 		
 		g1.addLabelsToUnNamedEdges();
 		g2.addLabelsToUnNamedEdges();
 
 
-		Graph merged = new MergeModels().mergeModels(g1, g2);
+		Graph merged = new MergeModels().mergeModels(g1, g2, new IdGeneratorHelper(), true, "Greedy", 0.6, 0.6, 0.75, 1, 1, 1, 1);
 		
 		EPCModelParser.writeModel(m1.substring(0, m1.length()-5) + "_"+m2.substring(0, m2.length()-5) + ".epml", merged);	
 	}

@@ -23,6 +23,11 @@ package common.tools;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import common.IdGeneratorHelper;
+import common.stemmer.PorterStemmer;
+import common.stemmer.SnowballProgram;
+import common.stemmer.SnowballStemmer;
+import common.stemmer.ext.englishStemmer;
 import planarGraphMathing.PlanarGraphMathing;
 import planarGraphMathing.PlanarGraphMathing.MappingRegions;
 
@@ -76,16 +81,20 @@ public class GraphM {
 				}
 			}
 		}
-		
+
+		IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+
 		for (String s : modelNames) {
 			String model1 = prefix + s + fileExt;
 			String model2 = prefix + s + "_1" + fileExt;
 			
 //			System.out.println(model1);
-			Graph g1 = EPCModelParser.readModels(model1, false).get(0);
+			Graph g1 = EPCModelParser.readModels(model1, false, idGeneratorHelper).get(0);
+			g1.setIdGenerator(idGeneratorHelper);
 //			g1.removeEmptyNodes();
 	//		System.out.println("**************************************");
-			Graph g2 = EPCModelParser.readModels(model2, false, true).get(0);
+			Graph g2 = EPCModelParser.readModels(model2, false, true, idGeneratorHelper).get(0);
+			g2.setIdGenerator(idGeneratorHelper);
 //			g2.removeEmptyNodes();
 			
 			getIDMap(nodeIdMap, g1, g2);
@@ -110,12 +119,16 @@ public class GraphM {
 		
 		String model1 = prefix + modelName + fileExt;
 		String model2 = prefix + modelName + "_1" + fileExt;
-		
+
+        IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+
 //			System.out.println(model1);
-		Graph g1 = EPCModelParser.readModels(model1, false).get(0);
+		Graph g1 = EPCModelParser.readModels(model1, false, idGeneratorHelper).get(0);
+        g1.setIdGenerator(idGeneratorHelper);
 //			g1.removeEmptyNodes();
 //		System.out.println("**************************************");
-		Graph g2 = EPCModelParser.readModels(model2, false, true).get(0);
+		Graph g2 = EPCModelParser.readModels(model2, false, true, idGeneratorHelper).get(0);
+        g2.setIdGenerator(idGeneratorHelper);
 //			g2.removeEmptyNodes();
 		
 		getIDMap(nodeIdMap, g1, g2);
@@ -138,12 +151,16 @@ public class GraphM {
 		
 		String model1 = prefix + modelName + fileExt;
 		String model2 = prefix + modelName + "_1" + fileExt;
-		
+
+        IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+
 //			System.out.println(model1);
-		Graph g1 = EPCModelParser.readModels(model1, false).get(0);
+		Graph g1 = EPCModelParser.readModels(model1, false, idGeneratorHelper).get(0);
+        g1.setIdGenerator(idGeneratorHelper);
 //			g1.removeEmptyNodes();
 //		System.out.println("**************************************");
-		Graph g2 = EPCModelParser.readModels(model2, false, true).get(0);
+		Graph g2 = EPCModelParser.readModels(model2, false, true, idGeneratorHelper).get(0);
+        g2.setIdGenerator(idGeneratorHelper);
 //			g2.removeEmptyNodes();
 		
 		getIDMap(nodeIdMap, g1, g2);
@@ -167,16 +184,20 @@ public class GraphM {
 //				"rule3_left_rule3_right_merged"
 				"vpp_12_vpp_3_MERGED"
 		};
-		
-		for (String s : modelNames) {
+
+        IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+
+        for (String s : modelNames) {
 			String model1 = prefix + s + fileExt;
 			String model2 = prefix + s + "_1" + fileExt;
-			
+
 //			System.out.println(model1);
-			Graph g1 = EPCModelParser.readModels(model1, false).get(0);
+			Graph g1 = EPCModelParser.readModels(model1, false, idGeneratorHelper).get(0);
+            g1.setIdGenerator(idGeneratorHelper);
 //			g1.removeEmptyNodes();
 	//		System.out.println("**************************************");
-			Graph g2 = EPCModelParser.readModels(model2, false, true).get(0);
+			Graph g2 = EPCModelParser.readModels(model2, false, true, idGeneratorHelper).get(0);
+            g2.setIdGenerator(idGeneratorHelper);
 //			g2.removeEmptyNodes();
 			
 			getIDMap(nodeIdMap, g1, g2);
@@ -205,12 +226,16 @@ public class GraphM {
 		for (String s : modelNames) {
 			String model1 = prefix + s + fileExt;
 			String model2 = prefix + s + "_1" + fileExt;
-			
+
+            IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+
 //			System.out.println(model1);
-			Graph g1 = EPCModelParser.readModels(model1, false).get(0);
+			Graph g1 = EPCModelParser.readModels(model1, false, idGeneratorHelper).get(0);
+            g1.setIdGenerator(idGeneratorHelper);
 //			g1.removeEmptyNodes();
 	//		System.out.println("**************************************");
-			Graph g2 = EPCModelParser.readModels(model2, false, true).get(0);
+			Graph g2 = EPCModelParser.readModels(model2, false, true, idGeneratorHelper).get(0);
+            g2.setIdGenerator(idGeneratorHelper);
 //			g2.removeEmptyNodes();
 			
 			getIDMap(nodeIdMap, g1, g2);
@@ -225,7 +250,7 @@ public class GraphM {
 	
 	private static void getIDMap(HashMap<String, String> nodeIdMap, Graph g1, Graph g2) {
 
-		MappingRegions mappings = PlanarGraphMathing.findMatchWithGW(g1, g2, Settings.MERGE_THRESHOLD, true);
+		MappingRegions mappings = PlanarGraphMathing.findMatchWithGWAdding(g1, g2, Settings.MERGE_THRESHOLD, new englishStemmer());
 
 		for (LinkedList<VertexPair> regions : mappings.getRegions()) {
 			for (VertexPair region : regions) {

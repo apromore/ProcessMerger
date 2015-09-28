@@ -31,11 +31,11 @@ public class Vertex {
 	private Graphics graphics;
 	public HashSet<String> dominance;
 	private HashMap<String, String> annotationMap = new HashMap<String, String>();
-	
+
 	public HashMap<String, String> getAnnotationMap() {
 		return annotationMap;
 	}
-	
+
 	public void addAnnotationsForGw(HashSet<String> edgeLabels) {
 		for (String model : edgeLabels) {
 			if (!annotationMap.containsKey(model)) {
@@ -43,7 +43,7 @@ public class Vertex {
 			}
 		}
 	}
-	
+
 	public void mergeAnnotationsForGw(Vertex v) {
 		if (!v.initialGW) {
 			return;
@@ -54,18 +54,18 @@ public class Vertex {
 //			if (!annotationMap.containsKey(annotation.getKey())) {
 //				annotationMap.put(annotation.getKey(), annotation.getValue());
 //			} else {
-//				// merge annotations - they are not the same type 
+//				// merge annotations - they are not the same type
 //				if (!annotation.getValue().equals(annotationMap.get(annotation.getValue())))  {
 //					annotationMap.put(annotation.getKey(), "or");
 //				}
 //			}
 //		}
 	}
-	
+
 	public void addAnnotations(HashMap<String, String> annotationMap1) {
 		annotationMap.putAll(annotationMap1);
-	}	
-	
+	}
+
 	public Graphics getGraphics() {
 		return graphics;
 	}
@@ -74,13 +74,14 @@ public class Vertex {
 		this.graphics = graphics;
 	}
 
-	public enum Type{
+	public enum Type {
 		node,
 		function,
 		gateway,
-		event
+		event,
+		state
 	}
-	
+
 	public enum GWType {
 		or,
 		xor,
@@ -88,7 +89,7 @@ public class Vertex {
 		place // petri nets
 	}
 
-	
+
 	private String ID;
 	// node type
 	private Type vertexType;
@@ -99,22 +100,22 @@ public class Vertex {
 	private LinkedList<Vertex> parentNodes = new LinkedList<Vertex>();
 	boolean isProcessed = false;
 	boolean processedGW = false;
-//	LinkedList<Vertex> toAddConfigurable = new LinkedList<Vertex>();
-	
-//	LinkedList<Edge> toAddEdges = new LinkedList<Edge>();
+//	LinkedList<Node> toAddConfigurable = new LinkedList<Node>();
+
+	//	LinkedList<Edge> toAddEdges = new LinkedList<Edge>();
 	Vertex prevConfVertex = null;
 	Edge toAddEdge = null;
-	
+
 	public boolean sourceBefore = false;
 	public boolean sinkBefore = false;
 	Vertex closeGW;
 	private boolean isConfigurable = false;
-	
+
 	boolean labelContributed = false;
-	
+
 	boolean initialGW = false;
-	
-	
+
+
 	public boolean isInitialGW() {
 		return initialGW;
 	}
@@ -129,18 +130,18 @@ public class Vertex {
 		toReturn.childNodes = Graph.copyVertices(v.childNodes);
 		toReturn.parentNodes = Graph.copyVertices(v.parentNodes);
 		toReturn.isConfigurable = v.isConfigurable;
-		
+
 		return toReturn;
 	}
-	
+
 	public Vertex copyVertex() {
 		Vertex toReturn = new Vertex(getType(), getLabel(), getID());
 		toReturn.gwType = gwType;
 		toReturn.isConfigurable = isConfigurable;
-		
+
 		return toReturn;
 	}
-	
+
 	public boolean isAddedGW() {
 		return !initialGW;
 	}
@@ -160,33 +161,33 @@ public class Vertex {
 //		}
 	}
 
-	public Vertex(Type type, String label, String ID){
+	public Vertex(Type type, String label, String ID) {
 		vertexType = type;
 		this.label = label;
 		this.ID = ID;
 	}
-	
+
 	public Vertex(GWType gwType, String ID) {
 		vertexType = Type.gateway;
 		this.gwType = gwType;
 		this.ID = ID;
 	}
 
-	
-	public void addChild(Vertex child){
-		if (!childNodes.contains(child)) 
+
+	public void addChild(Vertex child) {
+		if (!childNodes.contains(child))
 			childNodes.add(child);
 	}
-	
-	public LinkedList<Vertex> getChildren () {
+
+	public LinkedList<Vertex> getChildren() {
 		return childNodes;
 	}
-	
-	public void removeChildren () {
+
+	public void removeChildren() {
 		childNodes = new LinkedList<Vertex>();
 	}
-	
-	public void removeChild (String id) {
+
+	public void removeChild(String id) {
 		Vertex toRemove = null;
 		for (Vertex v : childNodes) {
 			if (v.getID().equals(id)) {
@@ -195,12 +196,12 @@ public class Vertex {
 			}
 		}
 		if (toRemove != null) {
-			childNodes.remove(toRemove);	
+			childNodes.remove(toRemove);
 		}
 	}
 
 
-	public void removeParent (String id) {
+	public void removeParent(String id) {
 		Vertex toRemove = null;
 		for (Vertex v : parentNodes) {
 			if (v.getID().equals(id)) {
@@ -209,130 +210,116 @@ public class Vertex {
 			}
 		}
 		if (toRemove != null) {
-			parentNodes.remove(toRemove);	
+			parentNodes.remove(toRemove);
 		}
 	}
 
-	public void removeParents () {
+	public void removeParents() {
 		parentNodes = new LinkedList<Vertex>();
 	}
 
-	public static void removeParents (LinkedList<Vertex> list) {
+	public static void removeParents(LinkedList<Vertex> list) {
 		for (Vertex v : list) {
 			v.removeParents();
 		}
 	}
 
-	public static void removeChildren (LinkedList<Vertex> list) {
+	public static void removeChildren(LinkedList<Vertex> list) {
 		for (Vertex v : list) {
 			v.removeChildren();
 		}
 	}
 
-	public LinkedList<Vertex> getChildrenList () {
+	public LinkedList<Vertex> getChildrenList() {
 		LinkedList<Vertex> result = new LinkedList<Vertex>();
-				
+
 		for (Vertex v : childNodes) {
-			if(v.getType().equals(Vertex.Type.function) 
-					|| (Settings.considerEvents && v.getType().equals(Vertex.Type.event))
-					|| (Settings.considerGateways && v.getType().equals(Vertex.Type.gateway))) {
+			if (v.getType().equals(Type.function)
+					|| (Settings.considerEvents && v.getType().equals(Type.event))
+					|| (Settings.considerGateways && v.getType().equals(Type.gateway))) {
 				result.add(v);
 			}
 		}
-		
+
 		return result;
 	}
 
-	public LinkedList<Vertex> getChildrenListAll () {
+	public LinkedList<Vertex> getChildrenListAll() {
 		LinkedList<Vertex> result = new LinkedList<Vertex>();
-				
+
 		for (Vertex v : childNodes) {
 			result.add(v);
 		}
-		
+
 		return result;
 	}
 
-	
-	public LinkedList<Vertex> getParents () {
+
+	public LinkedList<Vertex> getParents() {
 		return parentNodes;
 	}
-	
-	public LinkedList<Vertex> getParentsList () {
+
+	public LinkedList<Vertex> getParentsList() {
 		LinkedList<Vertex> result = new LinkedList<Vertex>();
-		
+
 		if (parentNodes == null) {
 			return result;
 		}
 
-		
+
 		for (Vertex v : parentNodes) {
-//			System.out.println("\t????parentlist add "+ v.getLabel()+ " "+v.getType());
-			if(v.getType().equals(Vertex.Type.function) || (Settings.considerEvents && v.getType().equals(Vertex.Type.event))
-					|| (Settings.considerGateways && v.getType().equals(Vertex.Type.gateway))) {
-//				System.out.println("\tparentlist add "+v.getLabel());
+			if (v.getType().equals(Type.function) || (Settings.considerEvents && v.getType().equals(Type.event))
+					|| (Settings.considerGateways && v.getType().equals(Type.gateway))) {
 				result.add(v);
 			}
 		}
-		
-		return result;
-	}
-	
-	public LinkedList<Vertex> getParentsListAll () {
-		LinkedList<Vertex> result = new LinkedList<Vertex>();
-		
-		if (parentNodes == null) {
-			return result;
-		}
-		
-		for (Vertex v : parentNodes) {
-			result.add(v);
-		}
-		
+
 		return result;
 	}
 
-	
-	public void addParent(Vertex parent){
+	public LinkedList<Vertex> getParentsListAll() {
+		LinkedList<Vertex> result = new LinkedList<Vertex>();
+
+		if (parentNodes == null) {
+			return result;
+		}
+
+		for (Vertex v : parentNodes) {
+			result.add(v);
+		}
+
+		return result;
+	}
+
+
+	public void addParent(Vertex parent) {
 		if (parentNodes == null) {
 			parentNodes = new LinkedList<Vertex>();
 		}
 		if (!parentNodes.contains(parent))
 			parentNodes.add(parent);
 	}
-	
-	public boolean equals(Vertex v2) {
-//		System.out.println("\t\tID "+this.ID +" : "+ v2.getID()+"  type:  "+
-//				this.vertexType.ordinal() +" : "+ v2.getType().ordinal() +
-//				" label "+ this.label +" : "+v2.getLabel() + " (equals = "+this.label.equals(v2.getLabel())+" ) "+
-//				" type " +  this.gwType +" : "+ v2.getGWType());
-		if (this.ID.equals(v2.getID())
-//				&& this.vertexType.ordinal() == v2.getType().ordinal()
-//				&& this.label.equals(v2.getLabel())
-//				&& (this.gwType == null && v2.getGWType() == null ||  this.gwType.ordinal() == v2.getGWType().ordinal())
-				){
-			return true;
-		}
-		return false;
-		
-	}
-	
+
+//
+//    public boolean equals(Vertex v2) {
+//        return this.ID.equals(v2.getID());
+//
+//    }
+
 	public Vertex(String gwTypeString, String ID) {
 		vertexType = Type.gateway;
 		if (gwTypeString.equalsIgnoreCase("xor")) {
 			gwType = GWType.xor;
-		}
-		else if (gwTypeString.equalsIgnoreCase("or")) {
+		} else if (gwTypeString.equalsIgnoreCase("or")) {
 			gwType = GWType.or;
-		} 
-		else if (gwTypeString.equalsIgnoreCase("and")) {
+		} else if (gwTypeString.equalsIgnoreCase("and")) {
 			gwType = GWType.and;
-		} 
+		}
 		// for petri nets
 		else if (gwTypeString.equalsIgnoreCase("place")) {
 			gwType = GWType.place;
-		} 
-		
+		}
+
 		this.ID = ID;
 	}
 
@@ -340,12 +327,12 @@ public class Vertex {
 	public GWType getGWType() {
 		return gwType;
 	}
-	
+
 	public void setGWType(GWType gwType) {
 		this.gwType = gwType;
 	}
 
-	
+
 	public void setID(String id) {
 		ID = id;
 	}
@@ -353,8 +340,8 @@ public class Vertex {
 	public String getID() {
 		return ID;
 	}
-	
-	
+
+
 	public void setVertexType(Type vertexType) {
 		this.vertexType = vertexType;
 	}
@@ -363,19 +350,23 @@ public class Vertex {
 		this.gwType = gwType;
 	}
 
-	
-	public Type getType(){
+
+	public Type getType() {
 		return vertexType;
 	}
-	
-	public String getLabel(){
+
+	public String getLabel() {
 		return label;
 	}
-	
+
+	public void setLabel(String label) {
+		this.label = label;
+	}
+
 	public LinkedList<Vertex> getAllNonGWParents() {
 		LinkedList<Vertex> toReturn = new LinkedList<Vertex>();
 		LinkedList<Vertex> toProcesGWs = new LinkedList<Vertex>();
-		
+
 		Vertex currentVertex = this;
 		while (true) {
 			for (Vertex p : currentVertex.getParents()) {
@@ -389,19 +380,18 @@ public class Vertex {
 			}
 			if (toProcesGWs.size() > 0) {
 				currentVertex = toProcesGWs.removeFirst();
-			}
-			else {
+			} else {
 				break;
 			}
 		}
-		
+
 		return toReturn;
 	}
 
 	public LinkedList<Vertex> getAllNonGWChildren() {
 		LinkedList<Vertex> toReturn = new LinkedList<Vertex>();
 		LinkedList<Vertex> toProcesGWs = new LinkedList<Vertex>();
-		
+
 		Vertex currentVertex = this;
 		while (true) {
 			for (Vertex p : currentVertex.getChildren()) {
@@ -415,8 +405,7 @@ public class Vertex {
 			}
 			if (toProcesGWs.size() > 0) {
 				currentVertex = toProcesGWs.removeFirst();
-			}
-			else {
+			} else {
 				break;
 			}
 		}
@@ -426,26 +415,16 @@ public class Vertex {
 	public int compareTo(Vertex another) {
 		return this.getID().compareTo(another.getID());
 	}
-	
-	private String printList(LinkedList<Vertex> l) {
-		String result = "";
-		for (Vertex le : l) {
-			result += le+ ", ";
-		}
-		if (result.length() > 0) {
-			result = result.substring(0, result.length() - 1);
-		}
-		return result;
-	}
-	
+
 	public String toString() {
-		if (getType().equals(Vertex.Type.event)) {
-			return "Event("+getID() +", "+getLabel()+")";
-		} else if (getType().equals(Vertex.Type.function)) {
-			return "Function("+getID() +", "+getLabel()+")";
-		} else if (getType().equals(Vertex.Type.gateway)) {
-			return "Gateway("+getID() +", "+getGWType()/*+ "P("+printList(parentNodes)+"), CH("+printList(childNodes)+"))"*/;
+		if (getType().equals(Type.event)) {
+			return "Event(" + getID() + ", " + getLabel() + ")";
+		} else if (getType().equals(Type.function)) {
+			return "Function(" + getID() + ", " + getLabel() + ")";
+		} else if (getType().equals(Type.gateway)) {
+			return "CpfGateway(" + getID() + ", " + getGWType()/*+ "P("+printList(parentNodes)+"), CH("+printList(childNodes)+"))"*/;
 		}
-		return "Node("+getID() +", "+getLabel()+")";
+		return "Node(" + getID() + ", " + getLabel() + ")";
 	}
+
 }

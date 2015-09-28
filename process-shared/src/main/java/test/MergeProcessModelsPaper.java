@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 
 import common.EPCModelParser;
+import common.IdGeneratorHelper;
 import common.Settings;
 import digest.Digest;
 
@@ -190,48 +191,54 @@ public class MergeProcessModelsPaper {
 
 	private static void testMerge(LinkedList<String> modelnames) {
 
-		Graph g1 = EPCModelParser.readModels(modelnames.get(0), false).get(0);
+        IdGeneratorHelper idGenerator = new IdGeneratorHelper();
+
+		Graph g1 = EPCModelParser.readModels(modelnames.get(0), false, idGenerator).get(0);
+		g1.setIdGenerator(idGenerator);
 		g1.removeEmptyNodes();
 
 		g1.reorganizeIDs();
 		
-		Graph g2 = EPCModelParser.readModels(modelnames.get(1), false).get(0);
+		Graph g2 = EPCModelParser.readModels(modelnames.get(1), false, idGenerator).get(0);
+        g2.setIdGenerator(idGenerator);
 		g2.removeEmptyNodes();
 		g2.reorganizeIDs();
 		
 		g1.addLabelsToUnNamedEdges();
 		g2.addLabelsToUnNamedEdges();
 
-		Graph merged = new MergingPaper().mergeModels(g1, g2);
+		Graph merged = new MergingPaper().mergeModels(g1, g2, idGenerator);
 		
 		if (modelnames.size() > 2) {
 			for (int i = 2; i < modelnames.size(); i++) {
-				Graph g3 = EPCModelParser.readModels(modelnames.get(i), false).get(0);
+				Graph g3 = EPCModelParser.readModels(modelnames.get(i), false, idGenerator).get(0);
 				g3.removeEmptyNodes();
 				g3.reorganizeIDs();
 				g3.addLabelsToUnNamedEdges();
 				
-				merged = new MergingPaper().mergeModels(merged, g3);
+				merged = new MergingPaper().mergeModels(merged, g3, idGenerator);
 			}
 		}
 		EPCModelParser.writeModel(mergedName == null ? (merged.name + "_merged.epml") : mergedName+".epml", merged);	
 		
 		if (digestNeeded) {
-			findDigest(merged);
+			findDigest(merged, idGenerator);
 		}
 	}
 	
 	private static void testDigest(String model) {
 
-		Graph g1 = EPCModelParser.readModels(model, false).get(0);
+        IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+		Graph g1 = EPCModelParser.readModels(model, false, idGeneratorHelper).get(0);
+        g1.setIdGenerator(idGeneratorHelper);
 		g1.reorganizeIDs();
 		g1.addLabelsToUnNamedEdges();
 		
-		findDigest(g1);
+		findDigest(g1, idGeneratorHelper);
 	}
 	
-	private static void findDigest(Graph g) {
-		Graph digest2 = Digest.digest(g, digest);
+	private static void findDigest(Graph g, IdGeneratorHelper idGenerator) {
+		Graph digest2 = Digest.digest(g, digest, idGenerator);
 		EPCModelParser.writeModel(digest2.name+".epml", digest2);	
 	}
 

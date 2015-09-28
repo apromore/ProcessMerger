@@ -20,6 +20,7 @@
 
 package graph;
 
+import common.IdGeneratorHelper;
 import graph.Vertex.GWType;
 import graph.Vertex.Type;
 
@@ -31,15 +32,14 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 public class Graph {
+
     private List<Edge> edges = new LinkedList<Edge>();
     private List<Vertex> vertices = new LinkedList<Vertex>();
 
-    private int nrOfFunctions;
-    private int nrOfEvents;
     public String name;
     public String ID;
-    public static int nextId = 1;
 
+    private IdGeneratorHelper idGenerator;
     public int beforeReduction = 0;
 
     // time that merging takes (without cleaning)
@@ -48,11 +48,20 @@ public class Graph {
     public long cleanTime = 0;
 
     private HashSet<String> graphLabels = new HashSet<String>();
-
+    private HashMap<String, Vertex> vertexMap = new HashMap<String, Vertex>();
+    private static HashMap<String, String> edgeLabelMap = new HashMap<String, String>();
     private boolean isConfigurableGraph = false;
 
     public HashSet<String> getGraphLabel1() {
         return graphLabels;
+    }
+
+//    public static IdGeneratorHelper getIdGenerator() {
+//        return idGenerator;
+//    }
+
+    public void setIdGenerator(IdGeneratorHelper idGenerator) {
+        this.idGenerator = idGenerator;
     }
 
     public void fillDominanceRelations() {
@@ -60,18 +69,6 @@ public class Graph {
             // TODO find these more sophisticated way
             v.dominance = performFullDominanceSearch(v);
         }
-//      for (int i = 0; i < vertices.size() - 1; i++) {
-//          Vertex v1  = vertices.get(i);
-//          for (int j = i+1; j < vertices.size(); j++) {
-//              Vertex v2  = vertices.get(j);
-//              // there must be a cycle
-//              // in the cycle the nodes do not dominate over each other
-////                if (v1.dominance.contains(v2.getID()) && v2.dominance.contains(v1.getID())) {
-////                    v1.dominance.remove(v2.getID());
-////                    v2.dominance.remove(v1.getID());
-////                }
-//          }
-//      }
     }
 
     private HashSet<String> performFullDominanceSearch(Vertex v) {
@@ -111,8 +108,31 @@ public class Graph {
     }
 
     public String getGraphLabel() {
-        return "";
+        return name;
     }
+
+    public List<Vertex> getPreset(String vertexId) {
+        List<Vertex> result = null;
+        for (Vertex vertex : vertices) {
+            if (vertex.getID().equalsIgnoreCase(vertexId)) {
+                result = vertex.getChildren();
+                break;
+            }
+        }
+        return result;
+    }
+
+    public List<Vertex> getPostset(String vertexId) {
+        List<Vertex> result = null;
+        for (Vertex vertex : vertices) {
+            if (vertex.getID().equalsIgnoreCase(vertexId)) {
+                result = vertex.getParents();
+                break;
+            }
+        }
+        return result;
+    }
+
 
     public void addGraphLabel(String graphLabel) {
         graphLabels.add(graphLabel);
@@ -122,17 +142,8 @@ public class Graph {
         graphLabels.addAll(graphLabel);
     }
 
-    private HashMap<String, Vertex> vertexMap = new HashMap<String, Vertex>();
-
-    private static HashMap<String , String> edgeLabelMap  = new HashMap<String, String>();
-
     public Set<String> getEdgeLabels() {
         return edgeLabelMap.keySet();
-    }
-
-    public static void cleanGraphIDs() {
-        nextId = 1;
-        edgeLabelMap  = new HashMap<String, String>();
     }
 
     public boolean addEdgeLabel(String label, String modelComment) {
@@ -148,7 +159,6 @@ public class Graph {
         // get all the current edge labels
 
         for (Edge e : edges) {
-//          System.out.println(">> "+e);
             // edge has a label
             if (e.getLabels().size() > 0) {
                 for (String label : e.getLabels()) {
@@ -156,6 +166,17 @@ public class Graph {
                 }
             }
         }
+    }
+
+    public String getVertexLabel(String vertexId) {
+        String result = null;
+        for (Vertex vertex : vertices) {
+            if (vertex.getID().equalsIgnoreCase(vertexId)) {
+                result = vertex.getLabel();
+                break;
+            }
+        }
+        return result;
     }
 
     private HashSet<String> getCombinedLabels(Vertex v, boolean parents) {
@@ -169,8 +190,7 @@ public class Graph {
                     labels.addAll(eLabels);
                 }
             }
-        }
-        else {
+        } else {
             for (Vertex p : v.getChildren()) {
                 Edge e = containsEdge(v.getID(), p.getID());
                 HashSet<String> eLabels = e.getLabels();
@@ -193,7 +213,7 @@ public class Graph {
         return false;
     }
 
-    private void setLabelsToParents(HashSet<String> labels, Vertex v, LinkedList<Vertex> toProcessConfGWs){
+    private void setLabelsToParents(HashSet<String> labels, Vertex v, LinkedList<Vertex> toProcessConfGWs) {
         LinkedList<Vertex> toProcessVertices = new LinkedList<Vertex>();
         toProcessVertices.add(v);
 
@@ -213,12 +233,10 @@ public class Graph {
                                 p.labelContributed = false;
                                 toProcessConfGWs.add(p);
                             }
-                        }
-                        else {
+                        } else {
                             e.addLabels(labels);
                         }
-                    }
-                    else {
+                    } else {
                         e.addLabels(labels);
                         toProcessVertices.add(p);
                     }
@@ -247,12 +265,10 @@ public class Graph {
                                 ch.labelContributed = false;
                                 toProcessConfGWs.add(ch);
                             }
-                        }
-                        else {
+                        } else {
                             e.addLabels(labels);
                         }
-                    }
-                    else {
+                    } else {
                         e.addLabels(labels);
                         toProcessVertices.add(ch);
                     }
@@ -265,12 +281,13 @@ public class Graph {
         // the graph is not configurable
         // add all new labels
         if (!isConfigurableGraph) {
-            // add the graph name to the labels 
+            // add the graph name to the labels
             // the graphs that are to be merged must have different names
             String label = this.name;
             addEdgeLabel(label, "");
             addGraphLabel(label);
-            // find the labels for edges that does not have labels 
+
+            // find the labels for edges that does not have labels
             for (Edge e : edges) {
                 e.addLabel(label);
             }
@@ -284,6 +301,14 @@ public class Graph {
                         v.getAnnotationMap().put(label, "xor");
                     }
                 } else {
+                    if(v.getLabel() == null || v.getLabel().isEmpty()) {
+                        if(v.getParents() == null || v.getParents().size() == 0) {
+                            v.setLabel("startEvent");
+                        }else if(v.getChildren() == null || v.getChildren().size() == 0) {
+                            v.setLabel("endEvent");
+                        }
+                    }
+
                     v.getAnnotationMap().put(label, v.getLabel());
                 }
             }
@@ -302,7 +327,7 @@ public class Graph {
         while (toProcessConfGWs.size() > 0) {
             Vertex currentGW = toProcessConfGWs.removeFirst();
             if (isJoin(currentGW)) {
-                HashSet<String> labelsForChildren =  getCombinedLabels(currentGW, true);
+                HashSet<String> labelsForChildren = getCombinedLabels(currentGW, true);
                 setLabelsToChildren(labelsForChildren, currentGW, toProcessConfGWs);
 
                 for (Vertex p : currentGW.getParents()) {
@@ -314,11 +339,11 @@ public class Graph {
                     }
                 }
 
-                // set labels for children 
+                // set labels for children
             }
             // must be split
             else {
-                HashSet<String> labelsForParents =  getCombinedLabels(currentGW, false);
+                HashSet<String> labelsForParents = getCombinedLabels(currentGW, false);
                 setLabelsToParents(labelsForParents, currentGW, toProcessConfGWs);
 
                 for (Vertex ch : currentGW.getChildren()) {
@@ -335,215 +360,21 @@ public class Graph {
         }
     }
 
-    public void closeModel() {
-        boolean close = true;
-        while (close) {
-            close = closeSources();
-        }
-
-        for (Vertex v : vertices) {
-            if (v.getType().equals(Vertex.Type.gateway)) {
-                v.isProcessed = false;
-                v.closeGW = null;
-            }
-        }
-        close = true;
-        while (close) {
-            close = closeSinks();
-        }
-    }
-
-    public boolean closeSources() {
-        LinkedList<Vertex> sources = new LinkedList<Vertex>();
-        for (Vertex v : vertices) {
-            if (v.getParents() == null || v.getParents().size() == 0) {
-                sources.add(v);
-            }
-        }
-
-        LinkedList<Vertex> toProcessGW = new LinkedList<Vertex>();
-
-        if (sources.size() == 1) {
-            return false;
-        }
-
-        // we have more than 1 source node
-        if(sources.size() > 1) {
-            for (Vertex v : sources) {
-                if (v.closeGW != null) {
-                    v = v.closeGW;
-                }
-                while (true) {
-                    // we don't have anything to process
-                    if (v.getChildren().size() == 0) {
-                        break;
-                    }
-                    Vertex child = v.getChildren().getFirst();
-                    // move to the first gateway
-                    if (child.getType().equals(Type.gateway) && !child.isProcessed) {
-                        if (child.getParents().size() > 1 && !toProcessGW.contains(child)) {
-                            toProcessGW.add(child);
-                        }
-                        break;
-                    }
-                    v = child;
-                }
-            }
-        }
-
-        while (!toProcessGW.isEmpty()) {
-            for (Vertex gw : toProcessGW) {
-                LinkedList<Vertex> nodesToConnect = new LinkedList<Vertex>();
-                boolean canMerge = true;
-                for (Vertex gwP : gw.getParents()) {
-                    // some of the parents are not processed yet
-                    // take next gateway to look
-                    if(gwP.getType().equals(Vertex.Type.gateway) && toProcessGW.contains(gwP)) {
-                        canMerge = false;
-                        break;
-                    }
-                    while(gwP.getParents().size() != 0) {
-                        gwP = gwP.getParents().getFirst();
-                        if(gwP.getType().equals(Vertex.Type.gateway) && toProcessGW.contains(gwP)) {
-                            canMerge = false;
-                            break;
-                        }
-                    }
-                    if (!canMerge) {
-                        break;
-                    }
-                    // we got to the leave
-                    if (!nodesToConnect.contains(gwP)) {
-                        nodesToConnect.add(gwP);
-                    }
-                }
-                // all the gateway parent branches are processed
-                if (canMerge) {
-                    Vertex newGW = new Vertex(gw.getGWType(), ""+nextId++);
-                    addVertex(newGW);
-                    newGW.isProcessed = true;
-                    gw.isProcessed = true;
-                    newGW.closeGW = gw;
-                    gw.closeGW = newGW;
-                    for (Vertex toConnect : nodesToConnect) {
-                        Edge e1 = new Edge(newGW.getID(), toConnect.getID(), ""+nextId++);
-                        newGW.addChild(toConnect);
-                        toConnect.addParent(newGW);
-                        addEdge(e1);
-                    }
-                    toProcessGW.remove(gw);
-                    break;
-                }
-            }
-        }
-        return true;
-    }
-
-    public boolean closeSinks() {
-        LinkedList<Vertex> sinks = new LinkedList<Vertex>();
-        for (Vertex v : vertices) {
-            if (v.getChildren().size() == 0) {
-                sinks.add(v);
-            }
-        }
-
-        if (sinks.size() == 1) {
-            return false;
-        }
-        LinkedList<Vertex> toProcessGW = new LinkedList<Vertex>();
-
-        // we have more than 1 sink node
-        if(sinks.size() > 1) {
-            for (Vertex v : sinks) {
-                if (v.closeGW != null) {
-                    v = v.closeGW;
-                }
-                while (true) {
-                    // we don't have anything to process
-                    if (v.getParents().size() == 0) {
-                        break;
-                    }
-                    Vertex parent = v.getParents().getFirst();
-                    // move to the first gateway
-                    if (parent.getType().equals(Type.gateway) && !parent.isProcessed) {
-                        if (parent.getChildren().size() > 1 && !toProcessGW.contains(parent)) {
-                            toProcessGW.add(parent);
-                        }
-                        break;
-                    }
-                    v = parent;
-                }
-            }
-        }
-
-        while (!toProcessGW.isEmpty()) {
-            for (Vertex gw : toProcessGW) {
-                LinkedList<Vertex> nodesToConnect = new LinkedList<Vertex>();
-                boolean canMerge = true;
-                for (Vertex gwP : gw.getChildren()) {
-                    // some of the parents are not processed yet
-                    // take next gateway to look
-                    if(gwP.getType().equals(Vertex.Type.gateway) && toProcessGW.contains(gwP)) {
-                        canMerge = false;
-                        break;
-                    }
-                    while(gwP.getChildren().size() != 0) {
-                        gwP = gwP.getChildren().getFirst();
-                        if(gwP.getType().equals(Vertex.Type.gateway) && toProcessGW.contains(gwP)) {
-                            canMerge = false;
-                            break;
-                        }
-                    }
-                    if (!canMerge) {
-                        break;
-                    }
-                    // we got to the leave
-                    if (!nodesToConnect.contains(gwP)) {
-                        nodesToConnect.add(gwP);
-                    }
-                }
-                // all the gateway parent branches are processed
-                if (canMerge) {
-                    gw.isProcessed = true;
-                    Vertex newGW = new Vertex(gw.getGWType(), ""+nextId++);
-                    addVertex(newGW);
-                    newGW.isProcessed = true;
-                    newGW.closeGW = gw;
-                    gw.closeGW = newGW;
-                    for (Vertex toConnect : nodesToConnect) {
-                        Edge e1 = new Edge(toConnect.getID(), newGW.getID(), ""+nextId++);
-                        newGW.addParent(toConnect);
-                        toConnect.addChild(newGW);
-                        addEdge(e1);
-                    }
-                    toProcessGW.remove(gw);
-                    break;
-                }
-            }
-        }
-        return true;
-    }
-
-
     public void reorganizeIDs() {
-        HashMap<String, String> idMap = new HashMap<String,String>();
+        HashMap<String, String> idMap = new HashMap<String, String>();
         HashMap<String, Vertex> vertexMapTmp = new HashMap<String, Vertex>();
 
-        for(Vertex v : vertices) {
+        for (Vertex v : vertices) {
             String oldID = v.getID();
-            idMap.put(oldID, String.valueOf(nextId));
-            v.setID(String.valueOf(nextId));
+            String next = idGenerator.getNextId();
+            idMap.put(oldID, next);
+            v.setID(next);
 
             vertexMapTmp.put(v.getID(), v);
-//          System.out.println("idMap add: "+oldID+" : "+nextId);
-            nextId++;
         }
 
         for (Edge e : edges) {
-//          System.out.println("idMap get: from "+ e.getFromVertex() + " to "+e.getToVertex());
-//          System.out.println("connecting "+ idMap.get(e.getFromVertex())+" -> "+idMap.get(e.getToVertex()));
-
-            e.setId(String.valueOf(nextId++));
+            e.setId(idGenerator.getNextId());
             e.setFromVertex(idMap.get(e.getFromVertex()));
             e.setToVertex(idMap.get(e.getToVertex()));
 
@@ -553,14 +384,6 @@ public class Graph {
             reorganizeEdgeLabels();
         }
         vertexMap = vertexMapTmp;
-    }
-
-    public void resetID() {
-        nextId = 1;
-    }
-
-    public void setFirstID(int id) {
-        nextId = id;
     }
 
     public void addEdge(Edge e) {
@@ -575,17 +398,26 @@ public class Graph {
         for (Vertex v : vertices) {
             if (v.getChildren().size() == 0 && v.getParents().size() == 0) {
                 vToRemove2.add(v);
-            }
-            else if ((v.getType().equals(Vertex.Type.function)
-                    || v.getType().equals(Vertex.Type.event))
+            } else if ((v.getType().equals(Vertex.Type.function)
+                    || v.getType().equals(Vertex.Type.event)
+                    || v.getType().equals(Vertex.Type.state)
+                    || v.getType().equals(Vertex.Type.node))
+                    && v.getChildren().size() == 1 && v.getParents().size() ==1
                     && (v.getLabel() == null || v.getLabel().length() == 0)) {
+                if(v.getType().equals(Vertex.Type.event) && ((v.getChildren().size() == 0 && v.getParents().size() > 0) || (v.getChildren().size() > 0 && v.getParents().size() == 0))) {
+                    continue;
+                }
                 vToRemove.add(v);
             }
         }
 
         // vertex with empty label
         for (Vertex v : vToRemove) {
-            // we have a source node 
+            if (v.getChildren().size() == 0 && v.getParents().size() == 0) {
+                vToRemove2.add(v);
+                continue;
+            }
+            // we have a source node
             if (v.getParents().size() == 0) {
                 v.getChildren().get(0).removeParent(v.getID());
                 removeEdge(v.getID(), v.getChildren().get(0).getID());
@@ -596,8 +428,7 @@ public class Graph {
                 v.getParents().get(0).removeChild(v.getID());
                 removeEdge(v.getParents().get(0).getID(), v.getID());
                 removeVertex(v.getID());
-            }
-            else {
+            } else {
                 Vertex vChild = v.getChildren().get(0);
                 Vertex vParent = v.getParents().get(0);
 
@@ -610,26 +441,23 @@ public class Graph {
             }
         }
 
-        // remove separate nodes 
+        // remove separate nodes
         for (Vertex v : vToRemove2) {
             removeVertex(v.getID());
         }
     }
 
     private boolean canMerge(Vertex v1, Vertex v2) {
-        if (v1.isInitialGW() && v2.isInitialGW()) {
-            return false;
-        }
-        else return true;
+        return !(v1.isInitialGW() && v2.isInitialGW());
     }
 
-    public void removeSplitJoins(){
+    public void removeSplitJoins() {
         LinkedList<Vertex> gateways = new LinkedList<Vertex>();
         beforeReduction = vertices.size();
 
         // get all gateways
         for (Vertex v : vertices) {
-            if(v.getType() == Type.gateway) {
+            if (v.getType() == Type.gateway) {
                 gateways.add(v);
             }
         }
@@ -645,7 +473,7 @@ public class Graph {
 
         // get all gateways
         for (Vertex v : vertices) {
-            if(v.getType() == Type.gateway) {
+            if (v.getType() == Type.gateway) {
                 gateways.add(v);
             }
         }
@@ -653,35 +481,24 @@ public class Graph {
         removeSplitJoins(gateways);
 
         boolean process = true;
-//      while (process) {
-//          process = removeCrossingGWs(gateways);
-//      }
-
-        process = true;
         while (process) {
-//          System.out.println("> removeSplitJoins");
             removeSplitJoins(gateways);
-//          System.out.println("> mergeSplitsAndJoins");
             process = mergeSplitsAndJoins(gateways);
-//          System.out.println("> removeCycles");
             process |= removeCycles(gateways);
-//          System.out.println("> cleanGatewaysRemove");
             process |= cleanGatewaysRemove(gateways);
-//          System.out.println("> DONE");
         }
 
         for (Vertex gw : gateways) {
             gw.processedGW = false;
         }
-//      setEdgeLabelsVisible();
     }
 
 
-    public void setEdgeLabelsVisible()  {
+    public void setEdgeLabelsVisible() {
         LinkedList<Vertex> gateways = new LinkedList<Vertex>();
 
         for (Vertex v : vertices) {
-            if(v.getType() == Type.gateway) {
+            if (v.getType() == Type.gateway) {
                 gateways.add(v);
             }
         }
@@ -699,8 +516,7 @@ public class Graph {
                             e.addLabelToModel();
                         }
                     }
-                }
-                else if (isSplit(gw)) {
+                } else if (isSplit(gw)) {
                     for (Vertex v : gw.getChildren()) {
                         Edge e = containsEdge(gw.getID(), v.getID());
                         if (e != null) {
@@ -718,11 +534,11 @@ public class Graph {
         LinkedList<Vertex> toAdd = new LinkedList<Vertex>();
         for (Vertex gw : gateways) {
             if (gw.getParents().size() > 1 && gw.getChildren().size() > 1) {
-                Vertex v = new Vertex(gw.getGWType(), ""+nextId++);
+                Vertex v = new Vertex(gw.getGWType(), idGenerator.getNextId());
                 if (gw.isConfigurable()) {
                     v.setConfigurable(true);
                 }
-                LinkedList<Vertex> gwChildren = new LinkedList<Vertex> (gw.getChildren());
+                LinkedList<Vertex> gwChildren = new LinkedList<Vertex>(gw.getChildren());
 
                 addVertex(v);
                 toAdd.add(v);
@@ -759,14 +575,13 @@ public class Graph {
                         if (!gwChild.getType().equals(Type.gateway)
                                 || !containsVertex(gwChild.getParents(), g2)
                                 || containsAny(gwChild.getChildren(), children)
-                                || gwChild.getParents().size() != 2){
+                                || gwChild.getParents().size() != 2) {
                             crossing = false;
                             break;
                         }
                     }
 
                     if (crossing) {
-//                      System.out.println("REMOVE* CROSSING "+g1.getID()+" "+g2.getID());
                         // merge first gateways
                         if (!g1.getGWType().equals(g2.getGWType())) {
                             g1.setGWType(GWType.or);
@@ -839,7 +654,6 @@ public class Graph {
 
                         removeVertex(g2.getID());
                         gateways.remove(g2);
-//                      System.out.println("REMOVE* CROSSING DONE");
                         return true;
                     }
                 }
@@ -881,7 +695,7 @@ public class Graph {
         toProcess = getChildGWs(gw);
         toReturn.addAll(toProcess);
 
-        while(toProcess.size() > 0) {
+        while (toProcess.size() > 0) {
             Vertex pr = toProcess.removeFirst();
             LinkedList<Vertex> prCh = getChildGWs(pr);
             toProcess.addAll(prCh);
@@ -909,7 +723,7 @@ public class Graph {
         toProcess = getParentGWs(gw);
         toReturn.addAll(toProcess);
 
-        while(toProcess.size() > 0) {
+        while (toProcess.size() > 0) {
             Vertex pr = toProcess.removeFirst();
             LinkedList<Vertex> prCh = getParentGWs(pr);
             toProcess.addAll(prCh);
@@ -920,34 +734,27 @@ public class Graph {
     }
 
     private void addConfList(LinkedList<Vertex> vList, Vertex gw) {
-
         for (Vertex v : vList) {
             Edge e = containsEdge(gw.getID(), v.getID());
             if (e != null) {
                 v.toAddEdge = e;
             }
-
-//          System.out.println("\t adding prev vertex to "+v.getID() +" prev "+gw.getID());
             v.prevConfVertex = gw;
         }
     }
 
     @SuppressWarnings("unused")
     private void addConf(Vertex v, Vertex gw) {
-
         Edge e = containsEdge(gw.getID(), v.getID());
         if (e != null) {
             v.toAddEdge = e;
         }
-
-//      System.out.println("\t adding prev vertex to "+v.getID() +" prev "+gw.getID());
         v.prevConfVertex = gw;
     }
 
     private boolean containsVertex(LinkedList<Vertex> list, Vertex v1) {
-
         for (Vertex v : list) {
-            if(v.getID().equals(v1.getID())) {
+            if (v.getID().equals(v1.getID())) {
                 return true;
             }
         }
@@ -957,12 +764,9 @@ public class Graph {
     private boolean removeCycles(LinkedList<Vertex> gateways) {
         for (Vertex gw : gateways) {
             if (gw.processedGW == false) {
-//              System.out.println("*processing GW "+gw.getID());
                 LinkedList<Vertex> childGWs = getChildGWs(gw);
-
                 LinkedList<Vertex> gWsToProcess = new LinkedList<Vertex>();
                 LinkedList<Vertex> gWsProcessed = new LinkedList<Vertex>();
-
                 addConfList(childGWs, gw);
 
                 for (Vertex g : childGWs) {
@@ -982,37 +786,26 @@ public class Graph {
                     gWsProcessed.add(toProcess);
 
                     // this is a cycle
-                    if(containsVertex(childGWs, toProcess) && canRemoveCycle(gw, toProcess)) {
-//                      System.out.println("\t REMOVE EDGE "+gw.getID()+ " -> "+ toProcess.getID());
+                    if (containsVertex(childGWs, toProcess) && canRemoveCycle(gw, toProcess)) {
                         gw.removeChild(toProcess.getID());
                         toProcess.removeParent(gw.getID());
 
                         HashSet<String> labels = removeEdge(gw.getID(), toProcess.getID());
-//                      System.out.println(">>> remove cycle ");
-//                      for (String l : labels) {
-//                          System.out.println("\t"+l);
-//                      }
-//                      System.out.println("<<< remove cycle ");
-
-
                         Vertex v = toProcess;
                         boolean needConf = false;
                         while (v != null) {
-//                          System.out.println("prev "+v.getID());
                             if (needConf) {
                                 v.setConfigurable(true);
                             } else {
                                 needConf = true;
                             }
-//                          // change the gateway types of all splits that are in the path
-//                          // (if they have the different type than the starting gateway
+//							// change the gateway types of all splits that are in the path
+//							// (if they have the different type than the starting gateway
                             if (!v.getGWType().equals(Vertex.GWType.xor)) {
                                 v.setGWType(GWType.or);
                             }
 
                             Edge e = v.toAddEdge;
-//                          if (e != null)
-//                              System.out.println("Edge "+ e.getFromVertex() + "->" + e.getToVertex() + " ; labels "+ e.getLabels() + " add : "+ labels);
                             if (e != null) {
                                 e.addLabels(labels);
                             }
@@ -1021,9 +814,7 @@ public class Graph {
                         }
 
                         return true;
-                    }
-                    else {
-//                      System.out.println("\t ADD EDGE "+gw.getID()+ " -> "+ toProcess.getID());
+                    } else {
                         LinkedList<Vertex> toA = getChildGWs(toProcess);
                         addConfList(toA, toProcess);
                         gWsToProcess.addAll(toA);
@@ -1046,7 +837,6 @@ public class Graph {
         while (v != null
                 // just in case, maybe not needed
                 && !v.getID().equals(gw.getID())) {
-//          System.out.println("processing  "+ v.getID());
             for (Vertex vCh : v.getChildren()) {
                 if (vCh.equals(lastV)) {
                     continue;
@@ -1062,38 +852,17 @@ public class Graph {
             v = v.prevConfVertex;
         }
 
-//      // process incoming arcs TODO - check
-//      v = toProcess.prevConfVertex;
-//      while (v != null
-//              // just in case, maybe not needed
-//              && !v.getID().equals(gw.getID())) {
-////            System.out.println("processing  "+ v.getID());
-//          for (Vertex vP : v.getParents()) {
-//              if (vP.equals(v.prevConfVertex)) {
-//                  continue;
-//              }
-//              HashSet<String> childLabels = getEdgeLabels(vP.getID(), v.getID());
-//              for (String label : edgeLabels) {
-//                  if (childLabels.contains(label)) {
-//                      return false;
-//                  }
-//              }
-//          }
-//          v = v.prevConfVertex;
-//      }
         return true;
     }
 
     public static boolean isSplit(Vertex v) {
-
-        if(v.getParentsList().size() == 1 && v.getChildrenList().size() > 1) {
+        if (v.getParentsList().size() == 1 && v.getChildrenList().size() > 1) {
             return true;
         }
         return false;
     }
 
     private Vertex getSplit(LinkedList<Vertex> vList) {
-
         for (Vertex v : vList) {
             if (v.getType().equals(Vertex.Type.gateway) && isSplit(v)) {
                 return v;
@@ -1103,7 +872,6 @@ public class Graph {
     }
 
     private Vertex getJoin(LinkedList<Vertex> vList) {
-
         for (Vertex v : vList) {
             if (v.getType().equals(Vertex.Type.gateway) && isJoin(v)) {
                 return v;
@@ -1114,26 +882,21 @@ public class Graph {
 
 
     public static boolean isJoin(Vertex v) {
-        if(v.getParentsList().size() > 1 && v.getChildrenList().size() == 1) {
+        if (v.getParentsList().size() > 1 && v.getChildrenList().size() == 1) {
             return true;
         }
         return false;
     }
 
     private boolean mergeSplitsAndJoins(LinkedList<Vertex> gateways) {
-
         Vertex tmp = null;
 
         for (Vertex v : gateways) {
-//          if (!v.isConfigurable()) {
-//              continue;
-//          }
-
             // merge splits
             if (isSplit(v)) {
                 tmp = getSplit(v.getChildrenList());
                 // merge these spilts
-                if(tmp != null/* && tmp.isConfigurable()*/ && canMerge(tmp, v)) {
+                if (tmp != null/* && tmp.isConfigurable()*/ && canMerge(tmp, v)) {
                     v.removeChild(tmp.getID());
                     removeEdge(v.getID(), tmp.getID());
 
@@ -1165,7 +928,7 @@ public class Graph {
             if (isJoin(v)) {
                 tmp = getJoin(v.getChildrenList());
                 // merge these spilts
-                if(tmp != null /*&& tmp.isConfigurable()*/&& canMerge(tmp, v)) {
+                if (tmp != null /*&& tmp.isConfigurable()*/ && canMerge(tmp, v)) {
                     tmp.removeParent(v.getID());
                     removeEdge(v.getID(), tmp.getID());
 
@@ -1199,31 +962,9 @@ public class Graph {
         return false;
     }
 
-    public List<Vertex> getPreset(String vertexId) {
-        List<Vertex> result = null;
-        for (Vertex vertex : vertices) {
-            if (vertex.getID().equalsIgnoreCase(vertexId)) {
-                result = vertex.getChildren();
-                break;
-            }
-        }
-        return result;
-    }
-
-    public List<Vertex> getPostset(String vertexId) {
-        List<Vertex> result = null;
-        for (Vertex vertex : vertices) {
-            if (vertex.getID().equalsIgnoreCase(vertexId)) {
-                result = vertex.getParents();
-                break;
-            }
-        }
-        return result;
-    }
-
 
     @SuppressWarnings("unused")
-    private boolean canMove(Vertex gw, boolean move){
+    private boolean canMove(Vertex gw, boolean move) {
 
         if (!gw.initialGW) {
             return true;
@@ -1231,7 +972,7 @@ public class Graph {
 
         LinkedList<Vertex> childGWs = getAllChildGWs(gw);
         for (Vertex v : childGWs) {
-            if (!v.initialGW)  {
+            if (!v.initialGW) {
                 if (move) {
                     v.setInitialGW();
                 }
@@ -1241,7 +982,7 @@ public class Graph {
         // look parents
         LinkedList<Vertex> parentGWs = getAllParentGWs(gw);
         for (Vertex v : parentGWs) {
-            if (!v.initialGW)  {
+            if (!v.initialGW) {
                 if (move) {
                     v.setInitialGW();
                 }
@@ -1255,8 +996,7 @@ public class Graph {
         LinkedList<Vertex> toRemove = new LinkedList<Vertex>();
 
         for (Vertex v : gateways) {
-            if ((v.getParents().size() == 0 || v.getParents().size() == 1)
-                    && (v.getChildren().size() == 0 || v.getChildren().size() == 1) /*&& canMove(v, false)*/) {
+            if (v.getParents().size() < 2 && v.getChildren().size() < 2) {
                 toRemove.add(v);
             }
         }
@@ -1274,35 +1014,34 @@ public class Graph {
                 removeVertex(v.getID());
                 child.removeParent(v.getID());
                 gateways.remove(v);
-            }
-            else if (v.getChildren().size() == 0) {
+            } else if (v.getChildren().size() == 0) {
                 Vertex parent = v.getParents().getFirst();
                 parent.removeChild(v.getID());
                 removeEdge(parent.getID(), v.getID());
                 removeVertex(v.getID());
                 gateways.remove(v);
             }
-            // first two should not happen in normal situations ... 
+            // first two should not happen in normal situations ...
             else {
-//              if (v.initialGW) {
-//                  // maybe this is already moved in this phase
-//                  if (canMove(v, false)) {
-//                      canMove(v, true);
-//                  }
-//                  else {
-//                      continue;
-//                  }
-//              }
+//				if (v.initialGW) {
+//					// maybe this is already moved in this phase
+//					if (canMove(v, false)) {
+//						canMove(v, true);
+//					}
+//					else {
+//						continue;
+//					}
+//				}
                 Vertex parent = v.getParents().getFirst();
                 Vertex child = v.getChildren().getFirst();
-                HashSet<String> labels = getEdgeLabels(v.getID(), child.getID());
+                HashSet<String> parentLabels = removeEdge(parent.getID(), v.getID());
+                HashSet<String> childLabels = removeEdge(v.getID(), child.getID());
 
-                removeEdge(parent.getID(), v.getID());
-                removeEdge(v.getID(), child.getID());
                 removeVertex(v.getID());
                 parent.removeChild(v.getID());
                 child.removeParent(v.getID());
-                connectVertices(parent, child, labels);
+                Edge e = connectVertices(parent, child, childLabels);
+//                e.addLabels(childLabels);
                 gateways.remove(v);
             }
         }
@@ -1317,8 +1056,7 @@ public class Graph {
 
         Edge e1 = containsEdge(v1.getID(), v2.getID());
         if (e1 == null) {
-//          System.out.println("Connect vertices "+ v1.getLabel() +" ("+v1.getID()+") -> "+v2.getLabel()+" ("+v2.getID()+")");
-            e1 = new Edge(v1.getID(), v2.getID(), ""+nextId++);
+            e1 = new Edge(v1.getID(), v2.getID(), idGenerator.getNextId());
             v1.addChild(v2);
             v2.addParent(v1);
             addEdge(e1);
@@ -1329,10 +1067,11 @@ public class Graph {
 
         return e1;
     }
+
     public Edge connectVertices(Vertex v1, Vertex v2) {
         Edge e1 = containsEdge(v1.getID(), v2.getID());
         if (e1 == null) {
-            e1 = new Edge(v1.getID(), v2.getID(), ""+nextId++);
+            e1 = new Edge(v1.getID(), v2.getID(), idGenerator.getNextId());
             v1.addChild(v2);
             v2.addParent(v1);
             addEdge(e1);
@@ -1354,16 +1093,15 @@ public class Graph {
         }
     }
 
-    public Edge getEdge(int i) throws NoSuchElementException{
+    public Edge getEdge(int i) throws NoSuchElementException {
         if (i >= 0 && i < edges.size()) {
             return edges.get(i);
-        }
-        else {
+        } else {
             throw new NoSuchElementException();
         }
     }
 
-    public HashMap<String, Vertex> getVertexMap(){
+    public HashMap<String, Vertex> getVertexMap() {
         return vertexMap;
     }
 
@@ -1373,19 +1111,16 @@ public class Graph {
             Vertex from = vertexMap.get(e.getFromVertex());
             Vertex to = vertexMap.get(e.getToVertex());
 
-            if(from == null || to == null) {
-//              System.out.println("ERROR - the list does not contain right vertex!");
+            if (from == null || to == null) {
                 continue;
             }
 
             from.addChild(to);
-//          System.out.println(from.getLabel() + " addchild "+ to.getLabel());
             to.addParent(from);
         }
     }
 
     public Edge containsEdge(String from, String to) {
-
         for (Edge e : edges) {
             if (from.equals(e.getFromVertex()) && to.equals(e.getToVertex())) {
                 return e;
@@ -1398,29 +1133,25 @@ public class Graph {
         Edge toremove = containsEdge(from, to);
 
         if (toremove == null) {
-//          System.out.println("ERROR : can not remove edge, does not exist: "+from+" -> "+to);
-            return new HashSet<String> ();
-        }
-        else {
-//          System.out.println("remove edge: "+from+" -> "+to);
+            return new HashSet<String>();
+        } else {
             edges.remove(toremove);
             return toremove.getLabels();
         }
     }
+
     public HashSet<String> getEdgeLabels(String from, String to) {
         Edge e = containsEdge(from, to);
 
         if (e == null) {
             return null;
-        }
-        else {
+        } else {
             return e.getLabels();
         }
     }
 
     public void removeVertex(String id) {
         Vertex toremove = null;
-//      System.out.println("REMoving vertex "+ id);
         for (Vertex v : vertices) {
             if (v.getID().equals(id)) {
                 toremove = v;
@@ -1428,10 +1159,7 @@ public class Graph {
             }
         }
         if (toremove == null) {
-//          System.out.println("ERROR : can not remove vertex, does not exist "+id);
-        }
-        else {
-//          System.out.println("REMoving vertex "+toremove.getID());
+        } else {
             vertices.remove(toremove);
         }
     }
@@ -1441,7 +1169,7 @@ public class Graph {
         LinkedList<Vertex> gateways = new LinkedList<Vertex>();
 
         for (Vertex v : vertices) {
-            if(v.getType() == Type.gateway) {
+            if (v.getType() == Type.gateway) {
                 gateways.add(v);
             }
         }
@@ -1456,8 +1184,8 @@ public class Graph {
                 if (!v.isProcessed) {
                     boolean canProcess = true;
 
-                    for(Vertex p : v.getParents()) {
-                        if(p.getType() == Type.gateway && !p.isProcessed) {
+                    for (Vertex p : v.getParents()) {
+                        if (p.getType() == Type.gateway && !p.isProcessed) {
                             canProcess = false;
                             break;
                         }
@@ -1466,25 +1194,17 @@ public class Graph {
                     if (canProcess) {
                         toProcess.add(v);
                     }
-                }
-                else {
+                } else {
                     processed++;
                 }
             }
-//          System.out.println("************* PROCESSIMISE RING  "+ processed);
             if (processed == gateways.size()) {
                 break;
             }
 
             for (Vertex toPr : toProcess) {
-//              System.out.println(">> PROCESSING NODE :  "+ toPr.getID()+ " "+ toPr.getGWType());
-
                 LinkedList<Vertex> toPrParents = toPr.getParentsListAll();
-//              for (Vertex to : toPrParents) {
-//                  System.out.println("\tparentlist:  "+ to.getLabel());
-//              }
-                for(Vertex toPrCh : toPr.getChildren()) {
-//                  System.out.println("Adding parents for  "+ (toPrCh.getType().equals(Type.gateway) ?toPrCh.getGWType() + " "+ toPrCh.getID(): toPrCh.getLabel()));
+                for (Vertex toPrCh : toPr.getChildren()) {
                     toPrCh.getParents().addAll(toPrParents);
                 }
 
@@ -1504,8 +1224,8 @@ public class Graph {
                 if (!v.isProcessed) {
                     boolean canProcess = true;
 
-                    for(Vertex p : v.getChildrenListAll()) {
-                        if(p.getType() == Type.gateway && !p.isProcessed) {
+                    for (Vertex p : v.getChildrenListAll()) {
+                        if (p.getType() == Type.gateway && !p.isProcessed) {
                             canProcess = false;
                             break;
                         }
@@ -1514,8 +1234,7 @@ public class Graph {
                     if (canProcess) {
                         toProcess.add(v);
                     }
-                }
-                else {
+                } else {
                     processed++;
                 }
             }
@@ -1525,35 +1244,13 @@ public class Graph {
             }
 
             for (Vertex toPr : toProcess) {
-//              System.out.println(">> PROCESSING NODE :  "+ toPr.getID()+ " "+ toPr.getGWType());
                 LinkedList<Vertex> toPrChildren = toPr.getChildrenListAll();
-//              for (Vertex to : toPrChildren) {
-//                  System.out.println("\tchildlist:  "+ to.getLabel());
-//              }
-
-                for(Vertex toPrCh : toPr.getParentsListAll()) {
-//                  System.out.println("Adding childs for  "+  (toPrCh.getType().equals(Type.gateway) ? toPrCh.getGWType() + " "+ toPrCh.getID(): toPrCh.getLabel()));
+                for (Vertex toPrCh : toPr.getParentsListAll()) {
                     toPrCh.getChildren().addAll(toPrChildren);
                 }
                 toPr.isProcessed = true;
             }
         }
-    }
-
-    public void setNrOfFunctions(int nrOfFunctions) {
-        this.nrOfFunctions = nrOfFunctions;
-    }
-
-    public int getNrOfFunctions() {
-        return nrOfFunctions;
-    }
-
-    public void setNrOfEvents(int nrOfEvents) {
-        this.nrOfEvents = nrOfEvents;
-    }
-
-    public int getNrOfEvents() {
-        return nrOfEvents;
     }
 
     public void addVertex(Vertex e) {
@@ -1567,37 +1264,25 @@ public class Graph {
         return vertices;
     }
 
-    public List<Vertex> getConnectors() {
-        List<Vertex> c = new LinkedList<Vertex>();
-        for (Vertex v : vertices) {
-            if (v.getType().equals(Vertex.Type.gateway)) {
-                c.add(v);
-            }
-        }
-        return c;
-    }
-
     public int[] getNrOfConfigGWs() {
         int total = 0;
         int gws = 0;
         int xor = 0;
         int or = 0;
         int and = 0;
-        for(Vertex v : vertices){
+        for (Vertex v : vertices) {
 
-            if(v.getType().equals(Vertex.Type.gateway)) {
+            if (v.getType().equals(Vertex.Type.gateway)) {
                 total++;
             }
 
-            if(v.getType().equals(Vertex.Type.gateway) && v.isConfigurable()) {
+            if (v.getType().equals(Vertex.Type.gateway) && v.isConfigurable()) {
                 gws++;
                 if (v.getGWType().equals(GWType.and)) {
                     and++;
-                }
-                else if (v.getGWType().equals(GWType.or)) {
+                } else if (v.getGWType().equals(GWType.or)) {
                     or++;
-                }
-                else if (v.getGWType().equals(GWType.xor)) {
+                } else if (v.getGWType().equals(GWType.xor)) {
                     xor++;
                 }
             }
@@ -1611,14 +1296,12 @@ public class Graph {
         int events = 0;
         int functions = 0;
 
-        for(Vertex v : vertices){
+        for (Vertex v : vertices) {
             if (v.getType().equals(Vertex.Type.gateway)) {
                 gws++;
-            }
-            else if (v.getType().equals(Vertex.Type.event)) {
+            } else if (v.getType().equals(Vertex.Type.event)) {
                 events++;
-            }
-            else if (v.getType().equals(Vertex.Type.function)) {
+            } else if (v.getType().equals(Vertex.Type.function)) {
                 functions++;
             }
         }
@@ -1628,8 +1311,8 @@ public class Graph {
 
     public LinkedList<Vertex> getFunctions() {
         LinkedList<Vertex> functions = new LinkedList<Vertex>();
-        for(Vertex v : vertices){
-            if(v.getType().equals(Vertex.Type.function)) {
+        for (Vertex v : vertices) {
+            if (v.getType().equals(Vertex.Type.function)) {
                 functions.add(v);
             }
         }
@@ -1638,21 +1321,12 @@ public class Graph {
 
     public LinkedList<Vertex> getEvents() {
         LinkedList<Vertex> events = new LinkedList<Vertex>();
-        for(Vertex v : vertices){
-            if(v.getType().equals(Vertex.Type.event)) {
+        for (Vertex v : vertices) {
+            if (v.getType().equals(Vertex.Type.event)) {
                 events.add(v);
             }
         }
         return events;
-    }
-
-    public Vertex getVertex(int i) throws NoSuchElementException{
-        if (i >= 0 && i < vertices.size()) {
-            return vertices.get(i);
-        }
-        else {
-            throw new NoSuchElementException();
-        }
     }
 
     public boolean isConfigurableGraph() {
@@ -1661,16 +1335,5 @@ public class Graph {
 
     public void setGraphConfigurable() {
         isConfigurableGraph = true;
-    }
-
-    public String getVertexLabel(String vertexId) {
-        String result = null;
-        for (Vertex vertex : vertices) {
-            if (vertex.getID().equalsIgnoreCase(vertexId)) {
-                result = vertex.getLabel();
-                break;
-            }
-        }
-        return result;
     }
 }
