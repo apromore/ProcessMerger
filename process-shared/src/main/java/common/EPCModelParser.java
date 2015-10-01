@@ -167,7 +167,15 @@ public class EPCModelParser{
             output.println("\t\t<attributeType typeId=\"added\"/>");
             output.println("\t\t<attributeType typeId=\"configurationAnnotation\"/>");
             output.println("\t</attributeTypes>");
-    		output.println("\t<epc epcId=\""+g.ID+"\" name=\""+g.name+"\">");
+            String id = g.ID;
+            try {
+                Integer.parseInt(id);
+            }catch (NumberFormatException nfe) {
+                IdGeneratorHelper idGeneratorHelper = new IdGeneratorHelper();
+                id = idGeneratorHelper.getNextId();
+            }
+
+    		output.println("\t<epc epcId=\""+id+"\" name=\""+g.name+"\">");
     		
     		// vertices
     		for (Vertex v : g.getVertices()) {
